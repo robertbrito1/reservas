@@ -1,0 +1,112 @@
+/* Diseño Responsive */
+/* Paleta de colores: Fondo oscuro y detalles dorados */
+body {
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070&auto=format&fit=crop') no-repeat center center fixed;
+    background-size: cover;
+    font-family: 'Playfair Display', serif; /* Tipografía elegante */
+    color: #000000;
+    
+}
+
+/* Título de lujo */
+.brand-title {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #d4af37; /* Color Oro */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    margin-bottom: 0;
+    letter-spacing: 2px;
+}
+
+.brand-subtitle {
+    color: #ffffff;
+    font-style: italic;
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+/* Mapa con efecto cristalizado */
+.container {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Mesas estilizadas */
+.mesa-container {
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+
+.mesa-libre {
+    background: rgba(40, 167, 69, 0.2) !important;
+    border-color: #28a745;
+    color: #fff;
+}
+
+.mesa-ocupada {
+    background: rgba(220, 53, 69, 0.4) !important;
+    border-color: #dc3545;
+    color: #fff;
+}
+
+.mesa-container:hover {
+    transform: scale(1.05);
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+/* Contenedor del Mapa: Se adapta al ancho de pantalla */
+.restaurante-mapa {
+    display: grid;
+    /* En móviles: 2 columnas. En pantallas grandes: 4 columnas */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Estilo de la Mesa (Círculo o Cuadrado elegante) */
+.mesa-container {
+    aspect-ratio: 1 / 1; /* Hace que sean siempre simétricas */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%; /* Mesas redondas */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none; /* Evita que se seleccione el texto al tocar */
+}
+
+/* Ajustes para Pantallas Pequeñas (Móviles) */
+@media (max-width: 600px) {
+    .brand-title {
+        font-size: 2.5rem; /* Título más pequeño en móvil */
+    }
+    
+    .restaurante-mapa {
+        grid-template-columns: repeat(2, 1fr); /* 2 mesas por fila en móvil */
+        gap: 15px;
+    }
+
+    .mesa-numero {
+        font-size: 1.5rem;
+    }
+
+    /* Botón flotante para móviles */
+    .btn-reservar-flotante {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        border-radius: 50px;
+        padding: 15px 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        z-index: 1000;
+    }
+}
