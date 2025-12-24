@@ -25,7 +25,28 @@ body {
     font-size: 1.2rem;
     margin-bottom: 30px;
 }
+/* Botón de zona activa */
+.btn-zona-activa {
+    background-color: #d4af37 !important;
+    color: black !important;
+    font-weight: bold;
+    border: none;
+}
 
+/* Botón de zona inactiva */
+.btn-zona-link {
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+.btn-zona-link:hover {
+    background: rgba(212, 175, 55, 0.2);
+    color: #d4af37;
+}
 /* Mapa con efecto cristalizado */
 .container {
     background: rgba(255, 255, 255, 0.05);

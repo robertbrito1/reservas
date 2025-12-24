@@ -23,4 +23,6 @@ urlpatterns = [
     path('', views.formulario_reserva, name='formulario_reserva'),
     path('guardar-reserva/', views.guardar_reserva, name='guardar_reserva'),
     path('eliminar-reserva/<int:reserva_id>/', views.eliminar_reserva, name='eliminar_reserva'),
+    path('terraza/', views.vista_terraza, name='terraza'),
+    path('exportar-pdf/', views.exportar_pdf, name='exportar_pdf'),
 ]

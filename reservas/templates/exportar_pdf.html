@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* Estilos específicos para impresión */
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.4;
+        }
+        .encabezado {
+            text-align: center;
+            border-bottom: 3px solid #d4af37;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .titulo {
+            font-size: 28px;
+            color: #000;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        .info-servicio {
+            font-size: 14px;
+            margin-top: 5px;
+            color: #555;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            font-size: 12px;
+            text-align: left;
+            color: #d4af37;
+        }
+        td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            font-size: 11px;
+            vertical-align: top;
+        }
+        .zona-tag {
+            font-weight: bold;
+            font-size: 9px;
+            color: #777;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            color: #aaa;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="encabezado">
+        <h1 class="titulo">M&J - Reporte de Reservas</h1>
+        <p class="info-servicio">
+            FECHA: <strong>{{ fecha }}</strong> | TURNO: <strong>{{ turno }}</strong>
+        </p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 10%;">Mesa</th>
+                <th style="width: 15%;">Hora</th>
+                <th style="width: 30%;">Cliente</th>
+                <th style="width: 15%;">Teléfono</th>
+                <th style="width: 30%;">Comentarios / Notas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in reservas %}
+            <tr>
+                <td>
+                    <strong>#{{ r.mesa }}</strong><br>
+                    <span class="zona-tag">
+                        {% if r.mesa <= 10 %} SALÓN {% else %} TERRAZA {% endif %}
+                    </span>
+                </td>
+                <td>{{ r.hora|time:"H:i" }}</td>
+                <td style="text-transform: uppercase;">{{ r.nombre }} {{ r.apellido }}</td>
+                <td>{{ r.telefono }}</td>
+                <td>{{ r.comentarios|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Restaurante M&J - Lista generada el {% now "d/m/Y" %} a las {% now "H:i" %}
+    </div>
+
+</body>
+</html>
