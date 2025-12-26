@@ -25,4 +25,5 @@ urlpatterns = [
     path('eliminar-reserva/<int:reserva_id>/', views.eliminar_reserva, name='eliminar_reserva'),
     path('terraza/', views.vista_terraza, name='terraza'),
     path('exportar-pdf/', views.exportar_pdf, name='exportar_pdf'),
+    path('editar-reserva/<int:reserva_id>/', views.editar_reserva, name='editar_reserva'),
 ]

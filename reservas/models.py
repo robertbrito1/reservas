@@ -16,6 +16,6 @@ class Reserva(models.Model):
     mesa = models.IntegerField()
     turno = models.CharField(max_length=5, choices=TURNOS)
     comentarios = models.TextField(null=True, blank=True)
-
+    personas = models.IntegerField(default=1)
     def __str__(self):
         return f"{self.nombre} {self.apellido} - Mesa {self.mesa} ({self.turno})"

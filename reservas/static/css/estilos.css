@@ -57,6 +57,21 @@ body {
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 }
 
+/* Estilo para mesas que pertenecen a un grupo */
+.mesa-en-conjunto {
+    border: 4px dashed #ff0000 !important; /* Rojo discontinuo */
+    background: linear-gradient(45deg, #ffffff 25%, #ff0000 25%, #ff0000 50%, #ffffff 50%, #ffffff 75%, #ff0000 75%, #ff0000 100%) !important;
+    background-size: 20px 20px !important; /* Efecto de rayas rojas y blancas */
+    color: black !important;
+    font-weight: bold;
+    animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+}
 /* Mesas estilizadas */
 .mesa-container {
     border-radius: 12px;
