@@ -98,14 +98,16 @@ def guardar_reserva(request):
     if request.method == 'POST':
         mesas_raw = request.POST.get('mesa')
         lista_mesas = mesas_raw.split(',')
+        fecha = request.POST.get('fecha')
+        turno = request.POST.get('turno') # Ahora llegará 'NOCHE' correctamente
         
         datos = {
             'nombre': request.POST.get('nombre'),
             'apellido': request.POST.get('apellido'),
             'telefono': request.POST.get('telefono'),
-            'fecha': request.POST.get('fecha'),
+            'fecha': fecha,
             'hora': request.POST.get('hora'),
-            'turno': request.POST.get('turno'),
+            'turno': turno,
             'personas': request.POST.get('personas'),
             'comentarios': request.POST.get('comentarios'),
         }
@@ -114,99 +116,126 @@ def guardar_reserva(request):
             if num_mesa.strip():
                 Reserva.objects.create(mesa=num_mesa.strip(), **datos)
         
-    return redirect(f"/?fecha={request.POST.get('fecha')}&turno={request.POST.get('turno')}")
-
+        # Redirección inteligente
+        mesa_ejemplo = int(lista_mesas[0].strip()) if lista_mesas[0].strip() else 0
+        url_base = "/terraza/" if mesa_ejemplo < 100 else "/"
+        return redirect(f"{url_base}?fecha={fecha}&turno={turno}")
 def eliminar_reserva(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id)
-    fecha, turno = reserva.fecha, reserva.turno
+    fecha, turno, num_mesa = reserva.fecha, reserva.turno, reserva.mesa
     reserva.delete()
-    return redirect(f'/?fecha={fecha}&turno={turno}')
+    
+    url_base = "/terraza/" if num_mesa < 100 else "/"
+    return redirect(f"{url_base}?fecha={fecha}&turno={turno}")
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Paragraph
+from datetime import date
 
 def exportar_pdf(request):
-    # 1. Capturamos los datos de la URL
     fecha_str = request.GET.get('fecha', str(date.today()))
     turno_str = request.GET.get('turno', 'DIA')
     
-    # 2. Obtenemos las reservas filtradas y ordenadas por cliente
-    # Cambié 'fecha_actual' por 'fecha_str' para corregir tu error
-    reservas = Reserva.objects.filter(
-        fecha=fecha_str, 
-        turno=turno_str
-    ).order_by('nombre', 'apellido', 'hora')
+    reservas_qs = Reserva.objects.filter(fecha=fecha_str, turno=turno_str).order_by('hora', 'nombre')
 
-    # 3. Preparar respuesta PDF
+    reservas_agrupadas = {}
+    for r in reservas_qs:
+        clave = (r.nombre.lower(), r.apellido.lower(), r.hora)
+        
+        # Identificar salón (s) o terraza (T)
+        try:
+            num_mesa = int(r.mesa)
+            prefijo = "T" if num_mesa >= 100 else "s"
+            mesa_con_letra = f"{prefijo}{num_mesa}"
+        except:
+            mesa_con_letra = str(r.mesa)
+
+        if clave not in reservas_agrupadas:
+            reservas_agrupadas[clave] = {
+                'mesas': [mesa_con_letra],
+                'hora': r.hora,
+                'nombre': f"{r.nombre} {r.apellido}",
+                'telefono': r.telefono,
+                'personas': r.personas,
+            }
+        else:
+            reservas_agrupadas[clave]['mesas'].append(mesa_con_letra)
+
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="reservas_{fecha_str}.pdf"'
 
     p = canvas.Canvas(response, pagesize=A4)
     width, height = A4
     
-    # --- Título ---
+    # --- Estilos para las mesas largas ---
+    styles = getSampleStyleSheet()
+    style_mesas = ParagraphStyle(
+        'Normal',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=10, # Espacio entre líneas
+    )
+    style_mesas_grupo = ParagraphStyle(
+        'Grupo',
+        parent=style_mesas,
+        textColor=colors.HexColor("#A52A2A"),
+    )
+
+    # --- Título y Encabezados ---
     p.setFont("Helvetica-Bold", 14)
     p.drawCentredString(width/2, height - 50, f"RESERVAS M&J - {fecha_str} ({turno_str})")
     
-    # --- Encabezados de tabla ---
     y = height - 100
     p.setFont("Helvetica-Bold", 10)
-    headers = ["MESA", "ZONA", "HORA", "PAX", "CLIENTE", "TEL."]
-    cols = [40, 85, 140, 185, 220, 350]
+    # Definimos los anchos de columna: MESAS tiene 75 puntos de ancho ahora
+    headers = ["MESAS", "HORA", "PAX", "CLIENTE", "TELÉFONO"]
+    cols = [40, 115, 160, 200, 380] 
+    
     for i, h in enumerate(headers): 
         p.drawString(cols[i], y, h)
     
     p.line(40, y-5, 550, y-5)
     y -= 25
     
-    # --- Listado de Reservas ---
-    for r in reservas:
-        # Detectar si esta reserva es parte de un grupo (mismo cliente, misma hora)
-        es_grupo = reservas.filter(
-            nombre=r.nombre, 
-            apellido=r.apellido, 
-            hora=r.hora
-        ).count() > 1
+    for data in reservas_agrupadas.values():
+        p.setFillColor(colors.black)
 
+        texto_mesas = ", ".join(data['mesas'])
+        es_grupo = len(data['mesas']) > 1
+        label_mesas = f"G: {texto_mesas}" if es_grupo else texto_mesas
+
+        # --- SOLUCIÓN: PARAGRAPH PARA MULTILÍNEA ---
+        estilo_actual = style_mesas_grupo if es_grupo else style_mesas
+        p_mesas = Paragraph(label_mesas, estilo_actual)
+        
+        # w_p, h_p son el ancho y alto que ocupa el texto de las mesas
+        w_p, h_p = p_mesas.wrap(70, 100) # Limitamos el ancho a 70 puntos
+        p_mesas.drawOn(p, cols[0], y - h_p + 8) # Dibujamos
+
+        # Resto de datos (se mantienen igual)
         p.setFont("Helvetica", 9)
+        p.drawString(cols[1], y, data['hora'].strftime('%H:%M') if data['hora'] else "--:--")
+        p.drawString(cols[2], y, str(data['personas']))
+        p.drawString(cols[3], y, data['nombre'].upper()[:35])
+        p.drawString(cols[4], y, str(data['telefono']))
         
-        # Si es grupo, pintamos el texto en un color azul oscuro o rojo para resaltar
-        if es_grupo:
-            p.setFillColor(colors.HexColor("#A52A2A")) # Color café/rojo oscuro
-        else:
-            p.setFillColor(colors.black)
-
-        # Determinar zona y etiqueta
-        zona = "TERRAZA" if r.mesa < 100 else "SALÓN"
-        # Agregamos T para terraza y S para salón
-        mesa_label = f"T{r.mesa}" if r.mesa < 100 else f"{r.mesa}S"
-        
-        # Escribir los datos en las columnas
-        p.drawString(40, y, mesa_label)
-        p.drawString(85, y, zona)
-        p.drawString(140, y, r.hora.strftime('%H:%M') if r.hora else "--:--")
-        p.drawString(185, y, str(r.personas))
-        
-        # Nombre del cliente (con marca si es grupo)
-        nombre_display = f"{r.nombre} {r.apellido}"
-        if es_grupo:
-            nombre_display += " (GRUPO)"
-        p.drawString(220, y, nombre_display[:30])
-        
-        p.drawString(350, y, str(r.telefono))
-        
-        # Dibujar una línea sutil debajo de cada fila
+        # Ajustar 'y' dinámicamente según la altura de las mesas
+        espacio_fila = max(h_p + 5, 20)
         p.setStrokeColor(colors.lightgrey)
-        p.line(40, y-5, 550, y-5)
+        p.line(40, y - espacio_fila + 10, 550, y - espacio_fila + 10)
         
-        y -= 20
+        y -= espacio_fila
         
-        # Control de salto de página
         if y < 50:
             p.showPage()
             y = height - 50
-            p.setFont("Helvetica", 9)
 
     p.save()
     return response
-   # Asegúrate de que la línea 190 (el def) y la 191 (el if) se vean así:
+
 def editar_reserva(request, reserva_id):
     if request.method == 'POST':
         reserva = get_object_or_404(Reserva, id=reserva_id)
@@ -218,6 +247,7 @@ def editar_reserva(request, reserva_id):
         reserva.comentarios = request.POST.get('comentarios')
         reserva.save()
         
-        messages.success(request, "Reserva actualizada correctamente")
-        # Redirigir a la página principal manteniendo la fecha y el turno
-        return redirect(f'/?fecha={reserva.fecha}&turno={reserva.turno}')
+        # Redirección inteligente según el número de mesa
+        url_base = "/terraza/" if reserva.mesa < 100 else "/"
+        return redirect(f"{url_base}?fecha={reserva.fecha}&turno={reserva.turno}")
+    

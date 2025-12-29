@@ -42,7 +42,20 @@ body {
     border-radius: 8px;
     transition: 0.3s;
 }
+/* Estilo para la mesa cuando está seleccionada */
+.mesa-seleccionada-temp {
+    background: #d4af37 !important; /* Color oro para resaltar */
+    border-color: #ffffff !important;
+    color: #000000 !important;
+    transform: scale(1.1); /* Se hace un poquito más grande */
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.8) !important;
+    z-index: 10;
+}
 
+/* Opcional: un efecto de pulso suave mientras está seleccionada */
+.mesa-seleccionada-temp .mesa-numero {
+    font-weight: bold;
+}
 .btn-zona-link:hover {
     background: rgba(212, 175, 55, 0.2);
     color: #d4af37;

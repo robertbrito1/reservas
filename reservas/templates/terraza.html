@@ -11,6 +11,7 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
 <body class="bg-light">
+
     <div id="contenedor-todo" class="container text-center mt-4">
         <h1 class="brand-title">M&J</h1>
         <p class="brand-subtitle">Experiencia Gastronómica & Reservas (TERRAZA)</p>
@@ -26,22 +27,33 @@
             <div class="col-md-6 col-lg-4">
                 <form method="GET" id="form-filtros" class="bg-dark p-3 rounded shadow-sm">
                     <label class="form-label fw-bold text-white small">FECHA DE CONSULTA</label>
-                    <input type="date" name="fecha" class="form-control mb-3" value="{{ fecha_actual }}" onchange="this.form.submit()">
+                    <input type="date" name="fecha" id="fecha_filtro" class="form-control mb-3" value="{{ fecha_actual }}" onchange="this.form.submit()">
 
                     <div class="btn-group w-100">
-                        <button type="button" hx-get="?fecha={{ fecha_actual }}&turno=DIA" hx-target="#contenedor-todo" hx-select="#contenedor-todo" hx-swap="outerHTML"
+                        <button type="button" 
+                            hx-get="?fecha={{ fecha_actual }}&turno=DIA" 
+                            hx-target="#contenedor-todo" 
+                            hx-select="#contenedor-todo" 
+                            hx-swap="outerHTML"
+                            hx-push-url="true"
                             class="btn btn-{% if turno_actual == 'DIA' %}primary{% else %}outline-light{% endif %}">☀️ Día</button>
-                        <button type="button" hx-get="?fecha={{ fecha_actual }}&turno=NOCHE" hx-target="#contenedor-todo" hx-select="#contenedor-todo" hx-swap="outerHTML"
+                            
+                        <button type="button" 
+                            hx-get="?fecha={{ fecha_actual }}&turno=NOCHE" 
+                            hx-target="#contenedor-todo" 
+                            hx-select="#contenedor-todo" 
+                            hx-swap="outerHTML"
+                            hx-push-url="true"
                             class="btn btn-{% if turno_actual == 'NOCHE' %}primary{% else %}outline-light{% endif %}">🌙 Noche</button>
                     </div>
-                    <input type="hidden" name="turno" value="{{ turno_actual }}">
+                    <input type="hidden" name="turno" id="turno_filtro" value="{{ turno_actual }}">
                 </form>
             </div>
         </div>
 
         <div class="d-flex justify-content-center gap-2 mb-4">
-            <a href="/" class="btn btn-outline-light">🏠 SALÓN</a>
-            <a href="/terraza/" class="btn btn-warning fw-bold">🌳 TERRAZA</a>
+            <a href="/?fecha={{ fecha_actual }}&turno={{ turno_actual }}" class="btn btn-outline-light">🏠 SALÓN</a>
+            <a href="/terraza/?fecha={{ fecha_actual }}&turno={{ turno_actual }}" class="btn btn-warning fw-bold">🌳 TERRAZA</a>
         </div>
 
         <div class="restaurante-mapa">
@@ -68,9 +80,7 @@
         <div class="mt-4">
             <a href="{% url 'exportar_pdf' %}?fecha={{ fecha_actual }}&turno={{ turno_actual }}" class="btn btn-danger shadow">📥 Reporte PDF</a>
         </div>
-    </div>
-
-    <div class="modal fade" id="modalReserva" tabindex="-1" aria-hidden="true">
+    </div> <div class="modal fade" id="modalReserva" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -91,7 +101,8 @@
                             <div class="col-6"><input type="time" name="hora" class="form-control" required></div>
                         </div>
                         <input type="hidden" id="input_mesa_numero" name="mesa">
-                        <input type="hidden" name="turno" value="{{ turno_actual }}">
+                        <input type="hidden" name="turno" id="input_turno_modal">
+                        
                         <textarea name="comentarios" class="form-control mb-3" rows="2" placeholder="Notas..."></textarea>
                         <button type="submit" class="btn btn-success w-100 fw-bold">Confirmar</button>
                     </form>
@@ -168,32 +179,33 @@
         }
 
         function abrirFormularioMultiple() {
+            // Asignar mesas
             document.getElementById('input_mesa_numero').value = seleccionadas.join(',');
             document.getElementById('label_mesa').innerText = seleccionadas.join(', ');
-            document.getElementById('input_fecha').value = "{{ fecha_actual }}";
+            
+            // Sincronizar Fecha y Turno desde los filtros actuales
+            const fecha = document.getElementById('fecha_filtro').value;
+            const turno = document.getElementById('turno_filtro').value;
+            
+            document.getElementById('input_fecha').value = fecha;
+            document.getElementById('input_turno_modal').value = turno;
+
             new bootstrap.Modal(document.getElementById('modalReserva')).show();
         }
 
         function verDetalle(elemento) {
             const id = elemento.getAttribute('data-id');
-            const n = elemento.getAttribute('data-nombre');
-            const a = elemento.getAttribute('data-apellido');
-            const t = elemento.getAttribute('data-tel');
-            const h = elemento.getAttribute('data-hora');
-            const c = elemento.getAttribute('data-coment');
-            const p = elemento.getAttribute('data-pax');
-
             document.getElementById('form_editar').action = "/editar-reserva/" + id + "/";
-            document.getElementById('edit_nombre').value = n;
-            document.getElementById('edit_apellido').value = a;
-            document.getElementById('edit_tel').value = t;
-            document.getElementById('edit_hora').value = h;
-            document.getElementById('edit_pax').value = p;
-            document.getElementById('edit_coment').value = c;
-            
+            document.getElementById('edit_nombre').value = elemento.getAttribute('data-nombre');
+            document.getElementById('edit_apellido').value = elemento.getAttribute('data-apellido');
+            document.getElementById('edit_tel').value = elemento.getAttribute('data-tel');
+            document.getElementById('edit_hora').value = elemento.getAttribute('data-hora');
+            document.getElementById('edit_pax').value = elemento.getAttribute('data-pax');
+            document.getElementById('edit_coment').value = elemento.getAttribute('data-coment');
             document.getElementById('btn_eliminar').href = "/eliminar-reserva/" + id + "/";
             new bootstrap.Modal(document.getElementById('modalDetalle')).show();
         }
+        
     </script>
 </body>
 </html>
