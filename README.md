@@ -184,7 +184,10 @@ Si quieres, puedo:
 
 ## Licencia
 
-Si no hay una licencia en el repo, considera añadir una (por ejemplo MIT) para dejar claro el uso permitido.
+Este proyecto está licenciado bajo la Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+No se permite el uso comercial del código ni de sus derivados.
+Consulta el archivo LICENSE para más detalles o visita https://creativecommons.org/licenses/by-nc/4.0/
+
 
 ---
 
