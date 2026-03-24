@@ -16,15 +16,19 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from reservas import views
+from django.contrib.auth import views as auth_views
+
 urlpatterns = [
+    path('cliente/', views.formulario_cliente, name='formulario_cliente'),
     path("admin/", admin.site.urls),
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/accounts/login/'), name='logout'),
     path('', views.formulario_reserva, name='formulario_reserva'),
     path('guardar-reserva/', views.guardar_reserva, name='guardar_reserva'),
     path('eliminar-reserva/<int:reserva_id>/', views.eliminar_reserva, name='eliminar_reserva'),
     path('terraza/', views.vista_terraza, name='terraza'),
     path('exportar-pdf/', views.exportar_pdf, name='exportar_pdf'),
     path('editar-reserva/<int:reserva_id>/', views.editar_reserva, name='editar_reserva'),
-    
 ]

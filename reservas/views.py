@@ -1,15 +1,112 @@
+def formulario_cliente(request):
+    """Vista pública solo para agregar reservas, sin login ni controles de edición/eliminación."""
+    fecha_str = request.GET.get('fecha')
+    info_mesas = "Cada mesa representa 2 comensales."
+    fecha_actual = date.fromisoformat(fecha_str) if fecha_str else date.today()
+    turno_actual = request.GET.get('turno', 'DIA')
+    reservas_queryset = Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual)
+    dict_reservas = {res.mesa: res for res in reservas_queryset}
+    mesas = []
+    for i in range(101, 111):
+        reserva_data = dict_reservas.get(i)
+        es_conjunto = False
+        if reserva_data:
+            coincidencias = reservas_queryset.filter(
+                nombre=reserva_data.nombre,
+                apellido=reserva_data.apellido,
+                hora=reserva_data.hora
+            ).count()
+            es_conjunto = coincidencias > 1
+        mesas.append({
+            'numero': i,
+            'ocupada': reserva_data is not None,
+            'detalle': reserva_data,
+            'es_conjunto': es_conjunto
+        })
+    for i in range(120, 123):
+        reserva_data = dict_reservas.get(i)
+        es_conjunto = False
+        if reserva_data:
+            coincidencias = reservas_queryset.filter(
+                nombre=reserva_data.nombre,
+                apellido=reserva_data.apellido,
+                hora=reserva_data.hora
+            ).count()
+            es_conjunto = coincidencias > 1
+        mesas.append({
+            'numero': i,
+            'ocupada': reserva_data is not None,
+            'detalle': reserva_data,
+            'es_conjunto': es_conjunto
+        })
+    return render(request, 'inicio.html', {
+        'mesas': mesas,
+        'fecha_actual': fecha_actual.isoformat(),
+        'turno_actual': turno_actual,
+        'info_mesas': info_mesas,
+        'solo_cliente': True
+    })
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponse
 from datetime import date
+from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Reserva
 from reportlab.lib import colors
 # ReportLab
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def formulario_reserva(request):
     fecha_str = request.GET.get('fecha')
+    info_mesas = "Cada mesa representa 2 comensales."
+    fecha_actual = date.fromisoformat(fecha_str) if fecha_str else date.today()
+    turno_actual = request.GET.get('turno', 'DIA')
+    
+    reservas_queryset = Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual)
+    dict_reservas = {res.mesa: res for res in reservas_queryset}
+    mesas = []
+    for i in range(101, 111):
+        reserva_data = dict_reservas.get(i)
+        es_conjunto = False
+        if reserva_data:
+            coincidencias = reservas_queryset.filter(
+                nombre=reserva_data.nombre,
+                apellido=reserva_data.apellido,
+                hora=reserva_data.hora
+            ).count()
+            es_conjunto = coincidencias > 1
+        mesas.append({
+            'numero': i,
+            'ocupada': reserva_data is not None,
+            'detalle': reserva_data,
+            'es_conjunto': es_conjunto
+        })
+    for i in range(120, 123):
+        reserva_data = dict_reservas.get(i)
+        es_conjunto = False
+        if reserva_data:
+            coincidencias = reservas_queryset.filter(
+                nombre=reserva_data.nombre,
+                apellido=reserva_data.apellido,
+                hora=reserva_data.hora
+            ).count()
+            es_conjunto = coincidencias > 1
+        mesas.append({
+            'numero': i,
+            'ocupada': reserva_data is not None,
+            'detalle': reserva_data,
+            'es_conjunto': es_conjunto
+        })
+    return render(request, 'inicio.html', {
+        'mesas': mesas,
+        'fecha_actual': fecha_actual.isoformat(),
+        'turno_actual': turno_actual,
+        'info_mesas': info_mesas
+    })
     fecha_actual = date.fromisoformat(fecha_str) if fecha_str else date.today()
     turno_actual = request.GET.get('turno', 'DIA')
     
@@ -59,7 +156,9 @@ def formulario_reserva(request):
     return render(request, 'inicio.html', {
         'mesas': mesas, 
         'fecha_actual': fecha_actual.isoformat(),
-        'turno_actual': turno_actual
+        'turno_actual': turno_actual,
+        'info_mesas': info_mesas,
+        'solo_cliente': False
     })
 
 def vista_terraza(request):
