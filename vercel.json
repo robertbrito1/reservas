@@ -9,7 +9,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "mi_reserva/wsgi.py"
+      "dest": "reservas/wsgi.py"
     }
   ]
 }
