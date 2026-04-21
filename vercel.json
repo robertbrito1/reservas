@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "reservas/wsgi.py",
+      "src": "mi_reserva/wsgi.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "reservas/wsgi.py"
+      "dest": "mi_reserva/wsgi.py"
     }
   ]
 }
