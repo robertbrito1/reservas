@@ -1,16 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "mi_reserva/wsgi.py",
-      "use": "@vercel/python"
-    }
-  ],
+  "installCommand": "uv sync && python manage.py migrate",
   "routes": [
     {
       "src": "/(.*)",
       "dest": "mi_reserva/wsgi.py"
     }
-  ],
-  "installCommand": "uv sync && python manage.py migrate"
+  ]
 }
