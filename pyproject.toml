@@ -13,4 +13,5 @@ dependencies = [
     "psycopg2-binary>=2.9.9",
     "pyphen>=0.17.2",
     "reportlab>=4.4.10",
+    "whitenoise>=6.12.0",
 ]
