@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "uv sync && python manage.py migrate",
+  "installCommand": "uv sync && python manage.py migrate && python manage.py create_admin",
   "routes": [
     {
       "src": "/(.*)",
