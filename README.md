@@ -117,8 +117,7 @@ Recomendación: usar `django-environ` o `python-decouple` para cargar estas vari
 
 ## Base de datos y migraciones
 
-Actualmente el proyecto usa SQLite por defecto (archivo `db.sqlite3` incluido en el repo). Para producción se recomienda usar PostgreSQL, MySQL u otra DB robusta.
-
+Actualmente el proyecto usa SQLite por defecto (archivo `db.sqlite3` incluido en el repo).
 Comandos útiles:
 ```bash
 python manage.py makemigrations
@@ -143,30 +142,6 @@ Ejecutar tests:
 ```bash
 python manage.py test
 ```
-
-Recomendación: configurar CI (GitHub Actions) para ejecutar tests automáticamente en cada PR.
-
----
-
-## Docker (opcional)
-
-Ejemplo básico (crear un `Dockerfile` y `docker-compose.yml` si quieres desplegar con contenedores). Un `docker-compose` típico contiene web + db (Postgres) y variables de entorno.
-
----
-
-## Buenas prácticas y seguridad (importante)
-
-1. Cambia la SECRET_KEY y no la subas al repo. Usa variables de entorno.
-2. Poner `DEBUG = False` en producción y configurar `ALLOWED_HOSTS`.
-3. No versiones `db.sqlite3`. Añádelo a `.gitignore`.
-4. Añadir validaciones y manejo de transacciones al crear reservas para prevenir reservas duplicadas (overbooking). Considerar:
-   - Restricción única (UniqueConstraint) en la tabla si aplica (`mesa`, `fecha`, `hora`, `turno`).
-   - Uso de `transaction.atomic()` o bloqueos (`select_for_update`) para operaciones concurrentes.
-5. Escanear dependencias (pip-audit / safety) y fijar versiones en `requirements.txt`.
-6. Proteger formularios con CSRF (Django lo hace por defecto en templates).
-7. No incluir datos sensibles en los commits.
-
----
 
 ## Contribuir
 
