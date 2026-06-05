@@ -1,21 +1,37 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M&J - Terraza</title>
+    <title>Gestión de Reservas </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
+
 <body class="bg-light">
+    {% if user.is_authenticated %}
+    <div class="d-flex justify-content-end p-2 position-absolute top-0 end-0">
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm fw-bold shadow-sm">🚪 Cerrar Sesión
+                (Admin)</button>
+        </form>
+    </div>
+    {% endif %}
 
     <div id="contenedor-todo" class="container text-center mt-4">
-        <h1 class="brand-title">M&J</h1>
-        <p class="brand-subtitle">Experiencia Gastronómica & Reservas (TERRAZA)</p>
+        <h1 class="brand-title">Gestión de Reservas </h1>
+
         <hr class="border-secondary opacity-25">
+        {% if info_mesas %}
+        <div class="alert alert-info small mx-5">{{ info_mesas }}</div>
+        {% endif %}
 
         <div id="btn-reserva-multiple" class="d-none mb-3">
             <button class="btn btn-success btn-lg w-100 shadow-lg fw-bold" onclick="abrirFormularioMultiple()">
@@ -27,24 +43,20 @@
             <div class="col-md-6 col-lg-4">
                 <form method="GET" id="form-filtros" class="bg-dark p-3 rounded shadow-sm">
                     <label class="form-label fw-bold text-white small">FECHA DE CONSULTA</label>
-                    <input type="date" name="fecha" id="fecha_filtro" class="form-control mb-3" value="{{ fecha_actual }}" onchange="this.form.submit()">
+                    <input type="date" name="fecha" id="fecha_filtro" class="form-control mb-3"
+                        value="{{ fecha_actual }}" onchange="this.form.submit()">
 
                     <div class="btn-group w-100">
-                        <button type="button" 
-                            hx-get="?fecha={{ fecha_actual }}&turno=DIA" 
-                            hx-target="#contenedor-todo" 
-                            hx-select="#contenedor-todo" 
-                            hx-swap="outerHTML"
+                        <button type="button" hx-get="?fecha={{ fecha_actual }}&turno=DIA" hx-target="#contenedor-todo"
+                            hx-select="#contenedor-todo" hx-swap="outerHTML" hx-push-url="true"
+                            class="btn btn-{% if turno_actual == 'DIA' %}primary{% else %}outline-light{% endif %}">☀️
+                            Día</button>
+
+                        <button type="button" hx-get="?fecha={{ fecha_actual }}&turno=NOCHE"
+                            hx-target="#contenedor-todo" hx-select="#contenedor-todo" hx-swap="outerHTML"
                             hx-push-url="true"
-                            class="btn btn-{% if turno_actual == 'DIA' %}primary{% else %}outline-light{% endif %}">☀️ Día</button>
-                            
-                        <button type="button" 
-                            hx-get="?fecha={{ fecha_actual }}&turno=NOCHE" 
-                            hx-target="#contenedor-todo" 
-                            hx-select="#contenedor-todo" 
-                            hx-swap="outerHTML"
-                            hx-push-url="true"
-                            class="btn btn-{% if turno_actual == 'NOCHE' %}primary{% else %}outline-light{% endif %}">🌙 Noche</button>
+                            class="btn btn-{% if turno_actual == 'NOCHE' %}primary{% else %}outline-light{% endif %}">🌙
+                            Noche</button>
                     </div>
                     <input type="hidden" name="turno" id="turno_filtro" value="{{ turno_actual }}">
                 </form>
@@ -53,159 +65,240 @@
 
         <div class="d-flex justify-content-center gap-2 mb-4">
             <a href="/?fecha={{ fecha_actual }}&turno={{ turno_actual }}" class="btn btn-outline-light">🏠 SALÓN</a>
-            <a href="/terraza/?fecha={{ fecha_actual }}&turno={{ turno_actual }}" class="btn btn-warning fw-bold">🌳 TERRAZA</a>
+            <a href="/terraza/?fecha={{ fecha_actual }}&turno={{ turno_actual }}" class="btn btn-warning fw-bold">🌳
+                TERRAZA</a>
         </div>
 
         <div class="restaurante-mapa">
             {% for mesa in mesas %}
-                {% if mesa.ocupada %}
-                    <div class="mesa-container mesa-ocupada {% if mesa.es_conjunto %}mesa-en-conjunto{% endif %}"
-                         data-id="{{ mesa.detalle.id }}"
-                         data-nombre="{{ mesa.detalle.nombre }}"
-                         data-apellido="{{ mesa.detalle.apellido }}"
-                         data-tel="{{ mesa.detalle.telefono }}"
-                         data-hora="{{ mesa.detalle.hora|time:'H:i' }}"
-                         data-coment="{{ mesa.detalle.comentarios|escapejs }}"
-                         data-pax="{{ mesa.detalle.personas }}"
-                         onclick="verDetalle(this)">
+            {% if mesa.ocupada %}
+            <div class="mesa-container mesa-ocupada {% if mesa.es_conjunto %}mesa-en-conjunto{% endif %}"
+                data-id="{{ mesa.detalle.id }}" data-nombre="{{ mesa.detalle.nombre }}"
+                data-apellido="{{ mesa.detalle.apellido }}" data-tel="{{ mesa.detalle.telefono }}"
+                data-hora="{{ mesa.detalle.hora|time:'H:i' }}" data-coment="{{ mesa.detalle.comentarios|escapejs }}"
+                data-pax="{{ mesa.detalle.personas }}" onclick="verDetalle(this)">
                 {% else %}
-                    <div class="mesa-container mesa-libre" id="mesa-{{ mesa.numero }}" onclick="toggleMesa('{{ mesa.numero }}')">
-                {% endif %}
+                <div class="mesa-container mesa-libre" id="mesa-{{ mesa.numero }}"
+                    onclick="toggleMesa('{{ mesa.numero }}')">
+                    {% endif %}
                     <span class="mesa-numero">T {{ mesa.numero }}</span>
-                    <span class="mesa-estado">{% if mesa.ocupada %}{{ mesa.detalle.personas }}P {% if mesa.es_conjunto %}(G){% endif %}{% else %}Libre{% endif %}</span>
+                    <span class="mesa-estado">
+                        {% if mesa.ocupada %}
+                        {{ mesa.detalle.personas }}P
+                        {% if user.is_authenticated %} | <span class="small fw-bold">{{ mesa.detalle.nombre }}
+                        </span>
+                        <br />
+                        <span class="small fw-bold"> TLF: {{ mesa.detalle.telefono }}</span>
+                        {%endif %}
+                        {% if mesa.es_conjunto %}(G){% endif %}
+                        {% else %}
+                        Libre
+                        {% endif %}
+                    </span>
                 </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'exportar_pdf' %}?fecha={{ fecha_actual }}&turno={{ turno_actual }}"
+                    class="btn btn-danger shadow">📥 Reporte PDF</a>
+            </div>
         </div>
-        
-        <div class="mt-4">
-            <a href="{% url 'exportar_pdf' %}?fecha={{ fecha_actual }}&turno={{ turno_actual }}" class="btn btn-danger shadow">📥 Reporte PDF</a>
-        </div>
-    </div> <div class="modal fade" id="modalReserva" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Reserva - Mesas: <span id="label_mesa"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form action="{% url 'guardar_reserva' %}" method="POST">
-                        {% csrf_token %}
-                        <div class="row g-2 mb-2">
-                            <div class="col-6"><input type="text" name="nombre" class="form-control" placeholder="Nombre" required></div>
-                            <div class="col-6"><input type="text" name="apellido" class="form-control" placeholder="Apellido" required></div>
-                        </div>
-                        <input type="tel" name="telefono" class="form-control mb-2" placeholder="Teléfono" required>
-                        <input type="number" name="personas" class="form-control mb-2" value="2" min="1">
-                        <div class="row g-2 mb-2">
-                            <div class="col-6"><input type="date" name="fecha" id="input_fecha" class="form-control" required></div>
-                            <div class="col-6"><input type="time" name="hora" class="form-control" required></div>
-                        </div>
-                        <input type="hidden" id="input_mesa_numero" name="mesa">
-                        <input type="hidden" name="turno" id="input_turno_modal">
-                        
-                        <textarea name="comentarios" class="form-control mb-3" rows="2" placeholder="Notas..."></textarea>
-                        <button type="submit" class="btn btn-success w-100 fw-bold">Confirmar</button>
-                    </form>
+        <div class="modal fade" id="modalReserva" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Reserva - Mesas: <span id="label_mesa"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="{% url 'guardar_reserva' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="row g-2 mb-2">
+                                <div class="col-6"><input type="text" name="nombre" class="form-control"
+                                        placeholder="Nombre" required></div>
+                                <div class="col-6"><input type="text" name="apellido" class="form-control"
+                                        placeholder="Apellido" required></div>
+                            </div>
+                            <input type="tel" name="telefono" class="form-control mb-2" placeholder="Teléfono" required>
+                            <input type="number" name="personas" class="form-control mb-2" value="2" min="1">
+                            <div class="row g-2 mb-2">
+                                <div class="col-6"><input type="date" name="fecha" id="input_fecha" class="form-control"
+                                        required></div>
+                                <div class="col-6"><input type="time" name="hora" class="form-control" required></div>
+                            </div>
+                            <input type="hidden" id="input_mesa_numero" name="mesa">
+                            <input type="hidden" name="turno" id="input_turno_modal">
+
+                            <textarea name="comentarios" class="form-control mb-3" rows="2"
+                                placeholder="Notas..."></textarea>
+                            <button type="submit" class="btn btn-success w-100 fw-bold">Confirmar</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-warning shadow-lg text-dark">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title fw-bold">📝 Editar Reserva</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-start">
-                    <form id="form_editar" method="POST">
-                        {% csrf_token %}
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <label class="small fw-bold">Nombre</label>
-                                <input type="text" name="nombre" id="edit_nombre" class="form-control" required>
+        <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-warning shadow-lg text-dark">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title fw-bold">📝 Editar Reserva</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-start">
+                        <form id="form_editar" method="POST">
+                            {% csrf_token %}
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="small fw-bold">Nombre</label>
+                                    <input type="text" name="nombre" id="edit_nombre" class="form-control" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="small fw-bold">Apellido</label>
+                                    <input type="text" name="apellido" id="edit_apellido" class="form-control" required>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <label class="small fw-bold">Apellido</label>
-                                <input type="text" name="apellido" id="edit_apellido" class="form-control" required>
+                            <div class="mb-2">
+                                <label class="small fw-bold">Teléfono</label>
+                                <input type="tel" name="telefono" id="edit_tel" class="form-control" required>
                             </div>
-                        </div>
-                        <div class="mb-2">
-                            <label class="small fw-bold">Teléfono</label>
-                            <input type="tel" name="telefono" id="edit_tel" class="form-control" required>
-                        </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <label class="small fw-bold">Pax</label>
-                                <input type="number" name="personas" id="edit_pax" class="form-control" required>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="small fw-bold">Pax</label>
+                                    <input type="number" name="personas" id="edit_pax" class="form-control" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="small fw-bold">Hora</label>
+                                    <input type="time" name="hora" id="edit_hora" class="form-control" required>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <label class="small fw-bold">Hora</label>
-                                <input type="time" name="hora" id="edit_hora" class="form-control" required>
+                            <div class="mb-3">
+                                <label class="small fw-bold">Comentarios</label>
+                                <textarea name="comentarios" id="edit_coment" class="form-control" rows="2"></textarea>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="small fw-bold">Comentarios</label>
-                            <textarea name="comentarios" id="edit_coment" class="form-control" rows="2"></textarea>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-warning fw-bold">💾 Guardar Cambios</button>
-                            <a id="btn_eliminar" href="#" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Liberar mesa?')">🗑️ Eliminar Reserva</a>
-                        </div>
-                    </form>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-warning fw-bold">💾 Guardar Cambios</button>
+                                <a id="btn_eliminar" href="#" class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('¿Liberar mesa?')">🗑️ Eliminar Reserva</a>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let seleccionadas = [];
+        <!-- Modal de Éxito -->
+        <div class="modal fade" id="modalExito" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content text-center border-success border-2 shadow-lg">
+                    <div class="modal-body p-5">
+                        <h1 class="display-1 text-success mb-3">✅</h1>
+                        <h3 class="fw-bold text-success mb-3">¡Reserva Confirmada!</h3>
+                        <p class="text-muted">Tu reserva ha sido registrada correctamente.</p>
+                        <p class="small text-muted mb-0">Redirigiendo en <span id="countdown">5</span> segundos...</p>
+                        <div class="progress mt-3" style="height: 5px;">
+                            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+                                id="progressBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        function toggleMesa(num) {
-            const idx = seleccionadas.indexOf(num);
-            const el = document.getElementById('mesa-' + num);
-            if (idx > -1) { 
-                seleccionadas.splice(idx, 1); 
-                el.classList.remove('mesa-seleccionada-temp'); 
-            } else { 
-                seleccionadas.push(num); 
-                el.classList.add('mesa-seleccionada-temp'); 
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            let seleccionadas = [];
+
+            function toggleMesa(num) {
+                const idx = seleccionadas.indexOf(num);
+                const el = document.getElementById('mesa-' + num);
+                if (idx > -1) {
+                    seleccionadas.splice(idx, 1);
+                    el.classList.remove('mesa-seleccionada-temp');
+                } else {
+                    seleccionadas.push(num);
+                    el.classList.add('mesa-seleccionada-temp');
+                }
+                const btn = document.getElementById('btn-reserva-multiple');
+                btn.classList.toggle('d-none', seleccionadas.length === 0);
+                document.getElementById('lista-mesas-seleccionadas').innerText = seleccionadas.join(', ');
             }
-            const btn = document.getElementById('btn-reserva-multiple');
-            btn.classList.toggle('d-none', seleccionadas.length === 0);
-            document.getElementById('lista-mesas-seleccionadas').innerText = seleccionadas.join(', ');
-        }
 
-        function abrirFormularioMultiple() {
-            // Asignar mesas
-            document.getElementById('input_mesa_numero').value = seleccionadas.join(',');
-            document.getElementById('label_mesa').innerText = seleccionadas.join(', ');
-            
-            // Sincronizar Fecha y Turno desde los filtros actuales
-            const fecha = document.getElementById('fecha_filtro').value;
-            const turno = document.getElementById('turno_filtro').value;
-            
-            document.getElementById('input_fecha').value = fecha;
-            document.getElementById('input_turno_modal').value = turno;
+            function abrirFormularioMultiple() {
+                // Asignar mesas
+                document.getElementById('input_mesa_numero').value = seleccionadas.join(',');
+                document.getElementById('label_mesa').innerText = seleccionadas.join(', ');
 
-            new bootstrap.Modal(document.getElementById('modalReserva')).show();
-        }
+                // Sincronizar Fecha y Turno desde los filtros actuales
+                const fecha = document.getElementById('fecha_filtro').value;
+                const turno = document.getElementById('turno_filtro').value;
 
-        function verDetalle(elemento) {
-            const id = elemento.getAttribute('data-id');
-            document.getElementById('form_editar').action = "/editar-reserva/" + id + "/";
-            document.getElementById('edit_nombre').value = elemento.getAttribute('data-nombre');
-            document.getElementById('edit_apellido').value = elemento.getAttribute('data-apellido');
-            document.getElementById('edit_tel').value = elemento.getAttribute('data-tel');
-            document.getElementById('edit_hora').value = elemento.getAttribute('data-hora');
-            document.getElementById('edit_pax').value = elemento.getAttribute('data-pax');
-            document.getElementById('edit_coment').value = elemento.getAttribute('data-coment');
-            document.getElementById('btn_eliminar').href = "/eliminar-reserva/" + id + "/";
-            new bootstrap.Modal(document.getElementById('modalDetalle')).show();
-        }
-        
-    </script>
+                document.getElementById('input_fecha').value = fecha;
+                document.getElementById('input_turno_modal').value = turno;
+
+                new bootstrap.Modal(document.getElementById('modalReserva')).show();
+            }
+
+            function verDetalle(elemento) {
+                const id = elemento.getAttribute('data-id');
+                document.getElementById('form_editar').action = "/editar-reserva/" + id + "/";
+                document.getElementById('edit_nombre').value = elemento.getAttribute('data-nombre');
+                document.getElementById('edit_apellido').value = elemento.getAttribute('data-apellido');
+                document.getElementById('edit_tel').value = elemento.getAttribute('data-tel');
+                document.getElementById('edit_hora').value = elemento.getAttribute('data-hora');
+                document.getElementById('edit_pax').value = elemento.getAttribute('data-pax');
+                document.getElementById('edit_coment').value = elemento.getAttribute('data-coment');
+                document.getElementById('btn_eliminar').href = "/eliminar-reserva/" + id + "/";
+                new bootstrap.Modal(document.getElementById('modalDetalle')).show();
+            }
+
+            // Interceptar formulario de nueva reserva
+            document.querySelector('#modalReserva form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const form = this;
+                const formData = new FormData(form);
+                const btn = form.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Procesando...';
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                }).then(response => {
+                    if (response.ok) {
+                        bootstrap.Modal.getInstance(document.getElementById('modalReserva')).hide();
+                        const exitoModal = new bootstrap.Modal(document.getElementById('modalExito'));
+                        exitoModal.show();
+
+                        let timeLeft = 5;
+                        const countdownEl = document.getElementById('countdown');
+                        const progressEl = document.getElementById('progressBar');
+
+                        const interval = setInterval(function () {
+                            timeLeft--;
+                            countdownEl.textContent = timeLeft;
+                            progressEl.style.width = (timeLeft * 20) + "%";
+
+                            if (timeLeft <= 0) {
+                                clearInterval(interval);
+                                window.location.href = response.url;
+                            }
+                        }, 1000);
+                    } else {
+                        alert("Error al procesar la reserva.");
+                        btn.disabled = false;
+                        btn.innerHTML = 'Confirmar';
+                    }
+                }).catch(err => {
+                    alert("Error de conexión.");
+                    btn.disabled = false;
+                    btn.innerHTML = 'Confirmar';
+                });
+            });
+
+        </script>
 </body>
+
 </html>

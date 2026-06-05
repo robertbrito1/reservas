@@ -4,41 +4,25 @@ def formulario_cliente(request):
     info_mesas = "Cada mesa representa 2 comensales."
     fecha_actual = date.fromisoformat(fecha_str) if fecha_str else date.today()
     turno_actual = request.GET.get('turno', 'DIA')
-    reservas_queryset = Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual)
-    dict_reservas = {res.mesa: res for res in reservas_queryset}
+    
+    reservas = list(Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual))
+    dict_reservas = {res.mesa: res for res in reservas}
+    conteo_grupos = Counter((res.nombre, res.apellido, res.hora) for res in reservas)
+    
     mesas = []
-    for i in range(101, 111):
+    for i in list(range(101, 111)) + list(range(120, 123)):
         reserva_data = dict_reservas.get(i)
         es_conjunto = False
         if reserva_data:
-            coincidencias = reservas_queryset.filter(
-                nombre=reserva_data.nombre,
-                apellido=reserva_data.apellido,
-                hora=reserva_data.hora
-            ).count()
-            es_conjunto = coincidencias > 1
+            clave = (reserva_data.nombre, reserva_data.apellido, reserva_data.hora)
+            es_conjunto = conteo_grupos[clave] > 1
         mesas.append({
             'numero': i,
             'ocupada': reserva_data is not None,
             'detalle': reserva_data,
             'es_conjunto': es_conjunto
         })
-    for i in range(120, 123):
-        reserva_data = dict_reservas.get(i)
-        es_conjunto = False
-        if reserva_data:
-            coincidencias = reservas_queryset.filter(
-                nombre=reserva_data.nombre,
-                apellido=reserva_data.apellido,
-                hora=reserva_data.hora
-            ).count()
-            es_conjunto = coincidencias > 1
-        mesas.append({
-            'numero': i,
-            'ocupada': reserva_data is not None,
-            'detalle': reserva_data,
-            'es_conjunto': es_conjunto
-        })
+
     return render(request, 'inicio.html', {
         'mesas': mesas,
         'fecha_actual': fecha_actual.isoformat(),
@@ -50,6 +34,7 @@ def formulario_cliente(request):
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponse
+from collections import Counter
 from datetime import date
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Reserva
@@ -66,86 +51,17 @@ def formulario_reserva(request):
     fecha_actual = date.fromisoformat(fecha_str) if fecha_str else date.today()
     turno_actual = request.GET.get('turno', 'DIA')
     
-    reservas_queryset = Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual)
-    dict_reservas = {res.mesa: res for res in reservas_queryset}
-    mesas = []
-    for i in range(101, 111):
-        reserva_data = dict_reservas.get(i)
-        es_conjunto = False
-        if reserva_data:
-            coincidencias = reservas_queryset.filter(
-                nombre=reserva_data.nombre,
-                apellido=reserva_data.apellido,
-                hora=reserva_data.hora
-            ).count()
-            es_conjunto = coincidencias > 1
-        mesas.append({
-            'numero': i,
-            'ocupada': reserva_data is not None,
-            'detalle': reserva_data,
-            'es_conjunto': es_conjunto
-        })
-    for i in range(120, 123):
-        reserva_data = dict_reservas.get(i)
-        es_conjunto = False
-        if reserva_data:
-            coincidencias = reservas_queryset.filter(
-                nombre=reserva_data.nombre,
-                apellido=reserva_data.apellido,
-                hora=reserva_data.hora
-            ).count()
-            es_conjunto = coincidencias > 1
-        mesas.append({
-            'numero': i,
-            'ocupada': reserva_data is not None,
-            'detalle': reserva_data,
-            'es_conjunto': es_conjunto
-        })
-    return render(request, 'inicio.html', {
-        'mesas': mesas,
-        'fecha_actual': fecha_actual.isoformat(),
-        'turno_actual': turno_actual,
-        'info_mesas': info_mesas
-    })
-    fecha_actual = date.fromisoformat(fecha_str) if fecha_str else date.today()
-    turno_actual = request.GET.get('turno', 'DIA')
-    
-    reservas_queryset = Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual)
-    dict_reservas = {res.mesa: res for res in reservas_queryset}
+    reservas = list(Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual))
+    dict_reservas = {res.mesa: res for res in reservas}
+    conteo_grupos = Counter((res.nombre, res.apellido, res.hora) for res in reservas)
     
     mesas = []
-    for i in range(101, 111):
+    for i in list(range(101, 111)) + list(range(120, 123)):
         reserva_data = dict_reservas.get(i)
         es_conjunto = False
-        
-        # Lógica para detectar si es un conjunto
         if reserva_data:
-            coincidencias = reservas_queryset.filter(
-                nombre=reserva_data.nombre, 
-                apellido=reserva_data.apellido, 
-                hora=reserva_data.hora
-            ).count()
-            es_conjunto = coincidencias > 1
-
-        mesas.append({
-            'numero': i,
-            'ocupada': reserva_data is not None,
-            'detalle': reserva_data,
-            'es_conjunto': es_conjunto
-        })
-    for i in range(120, 123):
-        reserva_data = dict_reservas.get(i)
-        es_conjunto = False
-        
-        # Lógica para detectar si es un conjunto
-        if reserva_data:
-            coincidencias = reservas_queryset.filter(
-                nombre=reserva_data.nombre, 
-                apellido=reserva_data.apellido, 
-                hora=reserva_data.hora
-            ).count()
-            es_conjunto = coincidencias > 1
-
+            clave = (reserva_data.nombre, reserva_data.apellido, reserva_data.hora)
+            es_conjunto = conteo_grupos[clave] > 1
         mesas.append({
             'numero': i,
             'ocupada': reserva_data is not None,
@@ -154,7 +70,7 @@ def formulario_reserva(request):
         })
 
     return render(request, 'inicio.html', {
-        'mesas': mesas, 
+        'mesas': mesas,
         'fecha_actual': fecha_actual.isoformat(),
         'turno_actual': turno_actual,
         'info_mesas': info_mesas,
@@ -165,20 +81,18 @@ def vista_terraza(request):
     fecha_str = request.GET.get('fecha', str(date.today()))
     turno = request.GET.get('turno', 'DIA')
     
-    reservas_queryset = Reserva.objects.filter(fecha=fecha_str, turno=turno)
+    reservas = list(Reserva.objects.filter(fecha=fecha_str, turno=turno))
+    dict_reservas = {res.mesa: res for res in reservas}
+    conteo_grupos = Counter((res.nombre, res.apellido, res.hora) for res in reservas)
     
     mesas = []
     for i in range(1, 13):
-        reserva_data = reservas_queryset.filter(mesa=i).first()
+        reserva_data = dict_reservas.get(i)
         es_conjunto = False
         
         if reserva_data:
-            coincidencias = reservas_queryset.filter(
-                nombre=reserva_data.nombre, 
-                apellido=reserva_data.apellido, 
-                hora=reserva_data.hora
-            ).count()
-            es_conjunto = coincidencias > 1
+            clave = (reserva_data.nombre, reserva_data.apellido, reserva_data.hora)
+            es_conjunto = conteo_grupos[clave] > 1
 
         mesas.append({
             'numero': i,
