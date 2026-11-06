@@ -1,59 +1,31 @@
 import os
+
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Create or update superuser from env vars or defaults"
-
-    def add_arguments(self, parser):
-        parser.add_argument(
-            "--username",
-            type=str,
-            default=os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin"),
-            help="Superuser username",
-        )
-        parser.add_argument(
-            "--email",
-            type=str,
-            default=os.environ.get("DJANGO_SUPERUSER_EMAIL", "admin@example.com"),
-            help="Superuser email",
-        )
-        parser.add_argument(
-            "--password",
-            type=str,
-            default=os.environ.get("DJANGO_SUPERUSER_PASSWORD", "admin123"),
-            help="Superuser password",
-        )
+    help = "Crea o actualiza el superusuario a partir de variables de entorno"
 
     def handle(self, *args, **options):
-        username = options["username"]
-        email = options["email"]
-        password = options["password"]
+        username = os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin")
+        email = os.environ.get("DJANGO_SUPERUSER_EMAIL", "admin@example.com")
+        password = os.environ.get("DJANGO_SUPERUSER_PASSWORD")
 
-        user, created = User.objects.get_or_create(
-            username=username,
-            defaults={
-                "email": email,
-                "is_staff": True,
-                "is_superuser": True,
-                "is_active": True,
-            },
-        )
+        # Sin contraseña definida no se crea nada: así nunca hay un admin con una contraseña por defecto.
+        if not password:
+            self.stdout.write(
+                self.style.WARNING("DJANGO_SUPERUSER_PASSWORD no está definida: no se crea el superusuario.")
+            )
+            return
 
-        if created:
-            user.set_password(password)
-            user.save()
-            self.stdout.write(
-                self.style.SUCCESS(f"✓ Superuser '{username}' created successfully")
-            )
-        else:
-            user.email = email
-            user.is_staff = True
-            user.is_superuser = True
-            user.is_active = True
-            user.set_password(password)
-            user.save()
-            self.stdout.write(
-                self.style.SUCCESS(f"✓ Superuser '{username}' updated successfully")
-            )
+        user, created = User.objects.get_or_create(username=username)
+        user.email = email
+        user.is_staff = True
+        user.is_superuser = True
+        user.is_active = True
+        user.set_password(password)
+        user.save()
+
+        accion = "creado" if created else "actualizado"
+        self.stdout.write(self.style.SUCCESS(f"✓ Superusuario '{username}' {accion}"))

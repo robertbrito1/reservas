@@ -1,153 +1,147 @@
-def formulario_cliente(request):
-    """Vista pública solo para agregar reservas, sin login ni controles de edición/eliminación."""
-    fecha_str = request.GET.get('fecha')
-    info_mesas = "Cada mesa representa 2 comensales."
-    fecha_actual = date.fromisoformat(fecha_str) if fecha_str else date.today()
-    turno_actual = request.GET.get('turno', 'DIA')
-    
-    reservas = list(Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual))
+from collections import Counter
+from datetime import date
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Paragraph
+
+from .models import Reserva
+
+# Numeración de las mesas de cada zona
+MESAS_SALON = list(range(101, 111)) + list(range(120, 123))
+MESAS_TERRAZA = list(range(1, 13))
+INFO_MESAS = "Cada mesa representa 2 comensales."
+
+
+def construir_mesas(fecha, turno, numeros):
+    """Devuelve el estado de cada mesa (libre/ocupada y si es parte de un grupo) para una fecha y turno."""
+    reservas = list(Reserva.objects.filter(fecha=fecha, turno=turno))
     dict_reservas = {res.mesa: res for res in reservas}
+    # Una reserva de grupo ocupa varias mesas con el mismo nombre, apellido y hora
     conteo_grupos = Counter((res.nombre, res.apellido, res.hora) for res in reservas)
-    
+
     mesas = []
-    for i in list(range(101, 111)) + list(range(120, 123)):
-        reserva_data = dict_reservas.get(i)
+    for numero in numeros:
+        reserva_data = dict_reservas.get(numero)
         es_conjunto = False
         if reserva_data:
             clave = (reserva_data.nombre, reserva_data.apellido, reserva_data.hora)
             es_conjunto = conteo_grupos[clave] > 1
         mesas.append({
-            'numero': i,
+            'numero': numero,
             'ocupada': reserva_data is not None,
             'detalle': reserva_data,
-            'es_conjunto': es_conjunto
+            'es_conjunto': es_conjunto,
         })
+    return mesas
 
-    return render(request, 'inicio.html', {
-        'mesas': mesas,
-        'fecha_actual': fecha_actual.isoformat(),
-        'turno_actual': turno_actual,
-        'info_mesas': info_mesas,
-        'solo_cliente': True
+
+def leer_filtros(request):
+    fecha_str = request.GET.get('fecha')
+    fecha = date.fromisoformat(fecha_str) if fecha_str else date.today()
+    turno = request.GET.get('turno', 'DIA')
+    return fecha, turno
+
+
+def url_zona(num_mesa, fecha, turno, es_cliente):
+    """URL a la que volver después de guardar/editar, según la zona de la mesa y el tipo de usuario."""
+    if num_mesa < 100:
+        base = '/cliente/terraza/' if es_cliente else '/terraza/'
+    else:
+        base = '/cliente/' if es_cliente else '/'
+    return f"{base}?fecha={fecha}&turno={turno}"
+
+
+def render_mapa(request, plantilla, numeros, solo_cliente):
+    fecha, turno = leer_filtros(request)
+    return render(request, plantilla, {
+        'mesas': construir_mesas(fecha, turno, numeros),
+        'fecha_actual': fecha.isoformat(),
+        'turno_actual': turno,
+        'info_mesas': INFO_MESAS,
+        'solo_cliente': solo_cliente,
     })
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.http import HttpResponse
-from collections import Counter
-from datetime import date
-from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Reserva
-from reportlab.lib import colors
-# ReportLab
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from django.contrib.auth.decorators import login_required
+
+# ---------- Vistas públicas (clientes) ----------
+
+def formulario_cliente(request):
+    """Vista pública: solo permite reservar. No muestra datos de otros clientes ni deja editar/eliminar."""
+    return render_mapa(request, 'inicio.html', MESAS_SALON, solo_cliente=True)
+
+
+def terraza_cliente(request):
+    return render_mapa(request, 'terraza.html', MESAS_TERRAZA, solo_cliente=True)
+
+
+@require_POST
+def guardar_reserva(request):
+    """Crea una reserva por cada mesa seleccionada. La usan tanto los empleados como los clientes."""
+    lista_mesas = [m.strip() for m in request.POST.get('mesa', '').split(',') if m.strip()]
+    fecha = request.POST.get('fecha')
+    turno = request.POST.get('turno')
+
+    datos = {
+        'nombre': request.POST.get('nombre'),
+        'apellido': request.POST.get('apellido'),
+        'telefono': request.POST.get('telefono'),
+        'fecha': fecha,
+        'hora': request.POST.get('hora'),
+        'turno': turno,
+        'personas': request.POST.get('personas'),
+        'comentarios': request.POST.get('comentarios'),
+    }
+
+    for num_mesa in lista_mesas:
+        Reserva.objects.create(mesa=num_mesa, **datos)
+
+    mesa_ejemplo = int(lista_mesas[0]) if lista_mesas else 0
+    es_cliente = not request.user.is_authenticated
+    return redirect(url_zona(mesa_ejemplo, fecha, turno, es_cliente))
+
+
+# ---------- Vistas internas (empleados, requieren login) ----------
 
 @login_required
 def formulario_reserva(request):
-    fecha_str = request.GET.get('fecha')
-    info_mesas = "Cada mesa representa 2 comensales."
-    fecha_actual = date.fromisoformat(fecha_str) if fecha_str else date.today()
-    turno_actual = request.GET.get('turno', 'DIA')
-    
-    reservas = list(Reserva.objects.filter(fecha=fecha_actual, turno=turno_actual))
-    dict_reservas = {res.mesa: res for res in reservas}
-    conteo_grupos = Counter((res.nombre, res.apellido, res.hora) for res in reservas)
-    
-    mesas = []
-    for i in list(range(101, 111)) + list(range(120, 123)):
-        reserva_data = dict_reservas.get(i)
-        es_conjunto = False
-        if reserva_data:
-            clave = (reserva_data.nombre, reserva_data.apellido, reserva_data.hora)
-            es_conjunto = conteo_grupos[clave] > 1
-        mesas.append({
-            'numero': i,
-            'ocupada': reserva_data is not None,
-            'detalle': reserva_data,
-            'es_conjunto': es_conjunto
-        })
+    return render_mapa(request, 'inicio.html', MESAS_SALON, solo_cliente=False)
 
-    return render(request, 'inicio.html', {
-        'mesas': mesas,
-        'fecha_actual': fecha_actual.isoformat(),
-        'turno_actual': turno_actual,
-        'info_mesas': info_mesas,
-        'solo_cliente': False
-    })
 
+@login_required
 def vista_terraza(request):
-    fecha_str = request.GET.get('fecha', str(date.today()))
-    turno = request.GET.get('turno', 'DIA')
-    
-    reservas = list(Reserva.objects.filter(fecha=fecha_str, turno=turno))
-    dict_reservas = {res.mesa: res for res in reservas}
-    conteo_grupos = Counter((res.nombre, res.apellido, res.hora) for res in reservas)
-    
-    mesas = []
-    for i in range(1, 13):
-        reserva_data = dict_reservas.get(i)
-        es_conjunto = False
-        
-        if reserva_data:
-            clave = (reserva_data.nombre, reserva_data.apellido, reserva_data.hora)
-            es_conjunto = conteo_grupos[clave] > 1
+    return render_mapa(request, 'terraza.html', MESAS_TERRAZA, solo_cliente=False)
 
-        mesas.append({
-            'numero': i,
-            'ocupada': reserva_data is not None,
-            'detalle': reserva_data,
-            'es_conjunto': es_conjunto
-        })
 
-    return render(request, 'terraza.html', {
-        'mesas': mesas,
-        'fecha_actual': fecha_str,
-        'turno_actual': turno
-    })
+@login_required
+@require_POST
+def editar_reserva(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva.nombre = request.POST.get('nombre')
+    reserva.apellido = request.POST.get('apellido')
+    reserva.telefono = request.POST.get('telefono')
+    reserva.personas = request.POST.get('personas')
+    reserva.hora = request.POST.get('hora')
+    reserva.comentarios = request.POST.get('comentarios')
+    reserva.save()
+    return redirect(url_zona(reserva.mesa, reserva.fecha, reserva.turno, es_cliente=False))
 
-def guardar_reserva(request):
-    if request.method == 'POST':
-        mesas_raw = request.POST.get('mesa')
-        lista_mesas = mesas_raw.split(',')
-        fecha = request.POST.get('fecha')
-        turno = request.POST.get('turno') # Ahora llegará 'NOCHE' correctamente
-        
-        datos = {
-            'nombre': request.POST.get('nombre'),
-            'apellido': request.POST.get('apellido'),
-            'telefono': request.POST.get('telefono'),
-            'fecha': fecha,
-            'hora': request.POST.get('hora'),
-            'turno': turno,
-            'personas': request.POST.get('personas'),
-            'comentarios': request.POST.get('comentarios'),
-        }
 
-        for num_mesa in lista_mesas:
-            if num_mesa.strip():
-                Reserva.objects.create(mesa=num_mesa.strip(), **datos)
-        
-        # Redirección inteligente
-        mesa_ejemplo = int(lista_mesas[0].strip()) if lista_mesas[0].strip() else 0
-        url_base = "/terraza/" if mesa_ejemplo < 100 else "/"
-        return redirect(f"{url_base}?fecha={fecha}&turno={turno}")
+@login_required
+@require_POST
 def eliminar_reserva(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id)
     fecha, turno, num_mesa = reserva.fecha, reserva.turno, reserva.mesa
     reserva.delete()
-    
-    url_base = "/terraza/" if num_mesa < 100 else "/"
-    return redirect(f"{url_base}?fecha={fecha}&turno={turno}")
-from django.http import HttpResponse
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import Paragraph
-from datetime import date
+    return redirect(url_zona(num_mesa, fecha, turno, es_cliente=False))
 
+
+@login_required
 def exportar_pdf(request):
     fecha_str = request.GET.get('fecha', str(date.today()))
     turno_str = request.GET.get('turno', 'DIA')
@@ -161,7 +155,7 @@ def exportar_pdf(request):
         # Identificar salón (s) o terraza (T)
         try:
             num_mesa = int(r.mesa)
-            prefijo = "T" if num_mesa >= 100 else "s"
+            prefijo = "s" if num_mesa >= 100 else "T"
             mesa_con_letra = f"{prefijo}{num_mesa}"
         except:
             mesa_con_letra = str(r.mesa)
@@ -248,19 +242,3 @@ def exportar_pdf(request):
 
     p.save()
     return response
-
-def editar_reserva(request, reserva_id):
-    if request.method == 'POST':
-        reserva = get_object_or_404(Reserva, id=reserva_id)
-        reserva.nombre = request.POST.get('nombre')
-        reserva.apellido = request.POST.get('apellido')
-        reserva.telefono = request.POST.get('telefono')
-        reserva.personas = request.POST.get('personas')
-        reserva.hora = request.POST.get('hora')
-        reserva.comentarios = request.POST.get('comentarios')
-        reserva.save()
-        
-        # Redirección inteligente según el número de mesa
-        url_base = "/terraza/" if reserva.mesa < 100 else "/"
-        return redirect(f"{url_base}?fecha={reserva.fecha}&turno={reserva.turno}")
-    

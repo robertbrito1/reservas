@@ -23,13 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-rwpewmm+=2l5jk8c9w_uv50j0i=cl61g8d4g^%9)li76f0ptt9"
+# La clave secreta y el modo debug se leen de variables de entorno (ver .env.example).
+# En producción (Vercel) hay que definir DJANGO_SECRET_KEY y dejar DJANGO_DEBUG sin definir o en False.
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-solo-para-desarrollo-local")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost,.vercel.app").split(",")
 
 
 # Application definition
@@ -133,7 +133,9 @@ USE_TZ = True
 STATIC_URL = "static/"
 # Esto es lo que falta para que funcione en Render:
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# WhiteNoise sirve los estáticos directamente desde las carpetas static/ de las apps,
+# así no hace falta ejecutar collectstatic en el despliegue de Vercel.
+WHITENOISE_USE_FINDERS = True
 
 # Cierra sesión cuando se cierra el navegador
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
